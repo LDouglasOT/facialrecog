@@ -89,6 +89,7 @@ def generate(request):
             # Generate the OTP
             decoder = generate_decoder(phone_number)
             token = generate_otp(decoder)
+            print(token)
             send_sms(phone_number, token)  # Send OTP via SMS
             return JsonResponse({"message": "OTP message successfully sent", "head": "Success", "decorder": decoder})
         
@@ -96,6 +97,7 @@ def generate(request):
         if student:
             decoder = generate_decoder(phone_number)
             token = generate_otp(decoder)
+            print(token)
             send_sms(phone_number, token)  
             return JsonResponse({"message": "OTP message successfully sent", "head": "Success", "decorder": decoder})
         
@@ -112,13 +114,20 @@ def verify(request):
         phone_number = data.get("PhoneNumber", "")
         token = data.get("token", "")
         decoder = data.get("decorder", "")
-        
+        print(request.body)
         if not phone_number or not token or not decoder:
             return JsonResponse({"message": "All fields are required", "head": "Missing Data"}, status=400)
 
         if verify_otp(decoder, token):
             auth_token = jwt.encode({"phone": phone_number}, JWT_SECRET, algorithm="HS256")
-            return JsonResponse({"message": "OTP code successfully verified", "head": "Success", "authToken": auth_token})
+            parent=Parent.objects.filter(phone=phone_number).first()
+            if parent:
+
+                return JsonResponse({"message": "OTP code successfully verified", "head": "Success", "access": auth_token,"new":'old', "phone":phone_number})
+            else:
+            
+                return JsonResponse({"message": "OTP code successfully verified", "head": "Success", "access": auth_token,"new":'new', "phone":phone_number})
+        
         else:
             print('wrong otp code')
             return JsonResponse({"message": "The provided OTP code is wrong", "head": "OTP not correct"}, status=400)
@@ -147,6 +156,7 @@ def generate_otp(key: str) -> str:
     
     return padded_otp
 
+@csrf_exempt
 def verify_otp(key: str, entered_otp: str) -> bool:
     """Verify if the entered OTP matches the generated one."""
     generated_otp = generate_otp(key)
@@ -164,6 +174,7 @@ def verify_otp(key: str, entered_otp: str) -> bool:
 @csrf_exempt
 def generate_phone_number(request):
     if request.method == 'POST':
+        print(request.body)
         data = json.loads(request.body)
         phone_number = data.get("PhoneNumber", "")
 
@@ -172,11 +183,15 @@ def generate_phone_number(request):
 
         parent = Parent.objects.filter(phone=phone_number).first()
         student = Child.objects.filter(phone=phone_number).first()
-
+        print(parent)
+        print(student)
         if parent or student:
             decoder = generate_decoder(phone_number)
             token = generate_otp(decoder)
-            send_sms(phone_number, token)  # Send OTP via SMS
+            send_sms(phone_number, token)
+            print(token)
+            print(phone_number)
+              # Send OTP via SMS
             return JsonResponse({"message": "OTP message successfully sent", "head": "Success", "decorder": decoder})
 
         return JsonResponse({"message": "No user exists connected to this phone number", "head": "User not found"}, status=404)

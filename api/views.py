@@ -7,7 +7,7 @@ import base64
 import insightface
 from insightface.app import FaceAnalysis
 from django.http import JsonResponse
-from .models import Face
+from .models import Face, Parent
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import cv2
@@ -15,6 +15,16 @@ import numpy as np
 import base64
 from sklearn.metrics.pairwise import cosine_similarity
 import re
+from django.contrib.auth.backends import ModelBackend
+from .models import CustomUser
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate, login
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from django.forms.models import model_to_dict
+
+
 
 # Initialize ArcFace Model
 app = FaceAnalysis(name="buffalo_l")  # You can use "antelopev2" for better accuracy
@@ -42,36 +52,67 @@ def img_to_numpy(image_file):
         return None
 
 
-@api_view(['POST'])
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser
+import numpy as np
+from scipy.spatial.distance import cosine
+from .models import Face  
+ 
+
+THRESHOLD = 0.5  
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser])
 def train_face(request):
     """ Train and save face embeddings from multiple images """
     name = request.data.get("name")
     image_files = request.FILES.getlist('image')  # Allow multiple images
-    print(request.FILES)
-
+    phone = request.data.get("phone")
     if not name or not image_files:
+        print("name and images are required")
         return Response({"error": "Name and images are required"}, status=400)
 
-    embeddings = []  # To store embeddings of all images
+    embeddings = [] 
+    match_count = 0  
 
     for image_file in image_files:
         img = img_to_numpy(image_file)
         if img is None:
             return Response({"error": f"Invalid image format for {image_file.name}"}, status=400)
 
-        faces = app.get(img)  # Assuming app.get() detects faces in the image
+        faces = app.get(img)  
         if len(faces) == 0:
             return Response({"error": f"No face detected in {image_file.name}"}, status=400)
 
-        face_embedding = faces[0].embedding  # Assuming `embedding` is how the face is represented
-        embeddings.append(face_embedding.tobytes())
+        face_embedding = faces[0].embedding  
+        embeddings.append(face_embedding)
 
-    # Save the embeddings for each image
+    all_faces = Face.objects.all()
     for embedding in embeddings:
-        face_obj = Face(name=name, embedding=embedding)
+        for existing_face in all_faces:
+            existing_embedding = np.frombuffer(existing_face.embedding, dtype=np.float32)
+            similarity = 1 - cosine(existing_embedding, embedding)
+            if similarity > THRESHOLD:
+                match_count += 1
+                break  
+
+    if match_count >= len(embeddings) / 2:
+        return Response({"message": "Face already registered", "match_count": match_count},status=404)
+
+    # Save new embeddings
+    for embedding in embeddings:
+        face_obj = Face(name=phone, embedding=embedding.tobytes())
         face_obj.save()
 
-    return Response({"message": "Faces trained successfully", "name": name})
+    parent = Parent.objects.create(
+        name=name,
+        phone=phone
+    )
+
+    return Response({"message": "Faces trained successfully"})
+
 
 
 def img_to_numpy(image_file):
@@ -134,8 +175,54 @@ def recognize_face(request):
         similarity = compare_embeddings(new_embedding, stored_embedding)
 
         # If the similarity is above a threshold, we consider it a match
-        if similarity > 0.7:  # You can adjust the threshold value
-            return Response({"message": "Face recognized", "name": stored_face.name})
+        if similarity > 0.7: 
+            print(stored_face.name)
+             # You can adjust the threshold value
+            parent = Parent.objects.get(phone=stored_face.name)
+
+            return Response({"message": "Face recognized", "parent": parent.name, "phone": parent.phone})
 
     # If no match is found
     return Response({"error": "No matching face found"}, status=400)
+
+
+
+class PhoneNumberAuthBackend(ModelBackend):
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        try:
+            print("phone_number", username)
+            print("password", password)
+            users = CustomUser.objects.all()
+            print(users)
+            user = CustomUser.objects.get(phone_number=username)
+            if user.check_password(password):
+                return user
+        except CustomUser.DoesNotExist:
+            print("User does not exist")
+            return None
+
+
+@csrf_exempt
+def login_view(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            print(data)
+            phone_number = data.get("phone_number")
+            password = data.get("password")
+
+            user = authenticate(request, phone_number=phone_number, password=password)
+            if user is not None:
+                refresh = RefreshToken.for_user(user)
+                return JsonResponse({
+                    "message": "Login successful",
+                    "access_token": str(refresh.access_token),
+                    "refresh_token": str(refresh),
+                    "user": user.phone_number
+                }, status=200)
+            else:
+                return JsonResponse({"error": "Invalid phone number or password"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)

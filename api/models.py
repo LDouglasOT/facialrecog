@@ -1,14 +1,51 @@
 from django.db import models
+from django.db import models
+from django.utils.timezone import now
+import uuid
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
+from django.db import models
+
 
 # Create your models here.
+
+class CustomUserManager(BaseUserManager):
+    def create_user(self, phone_number, password=None, **extra_fields):
+        if not phone_number:
+            raise ValueError("The Phone Number field must be set")
+        user = self.model(phone_number=phone_number, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, phone_number, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(phone_number, password, **extra_fields)
+
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    phone_number = models.CharField(max_length=15, unique=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=True)
+
+    groups = models.ManyToManyField(Group, related_name="customuser_groups", blank=True)
+    user_permissions = models.ManyToManyField(Permission, related_name="customuser_permissions", blank=True)
+
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = 'phone_number'
+    REQUIRED_FIELDS = []  
+
+    def __str__(self):
+        return self.phone_number
+
+
+
 
 class Face(models.Model):
     name = models.CharField(max_length=255)
     embedding = models.BinaryField() 
+    faceId = models.UUIDField(editable=True, default=uuid.uuid4, unique=True)
 
-from django.db import models
-from django.utils.timezone import now
-import uuid
 
 class Form(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -28,6 +65,7 @@ class Parent(models.Model):
     imgurl = models.URLField(blank=True, null=True)
     residence = models.TextField(blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
+    isBanned = models.BooleanField(default=False)
 
 class Child(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -71,7 +109,7 @@ class Pledge(models.Model):
     paid_at = models.DateTimeField(blank=True, null=True)
     expires_at = models.DateTimeField(default=now)
     days = models.IntegerField()
-
+# 07
 class ClearanceCode(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code = models.CharField(max_length=100)
@@ -113,3 +151,26 @@ class Transaction(models.Model):
     paid_at = models.DateTimeField(blank=True, null=True)
     expires_at = models.DateTimeField(default=now)
     days = models.IntegerField()
+
+
+
+class Product(models.Model):
+  id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+  ProductName = models.CharField(max_length=250)
+  price = models.IntegerField(default=0)
+  quantity = models.IntegerField(default=0)
+  itemDescription = models.CharField(max_length=250)
+  images = models.JSONField; 
+  Type = models.CharField(max_length=250)
+  imgurl = models.CharField(max_length=250)
+  venue = models.CharField(max_length=250)
+
+
+class Order(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    product = models.ForeignKey(Product,on_delete=models.CASCADE,related_name="products")
+    quantity = models.IntegerField(default=0)
+    parent = models.ForeignKey(Parent,on_delete=models.CASCADE,related_name="parent")
+    created_at = models.DateField(auto_now_add=True)
+    paid = models.IntegerField(default=0)
+    fulfilled = models.BooleanField(default=False)

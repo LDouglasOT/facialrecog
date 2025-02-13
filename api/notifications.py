@@ -1,3 +1,4 @@
+import json
 from django.http import JsonResponse
 from .models import Notification
 from django.views.decorators.csrf import csrf_exempt
@@ -8,12 +9,11 @@ from django.views import View
 def create_notification(request):
     if request.method == 'POST':
         data = json.loads(request.body)
+        print(data)
         notification = Notification.objects.create(
             title=data.get('title'),
             message=data.get('message'),
-            recipient_id=data.get('recipientId'),
-            type=data.get('type', 'info'),
-            metadata=data.get('metadata', None)
+            creator = data.get('creator'),
         )
         return JsonResponse({'message': 'Notification created', 'notification': notification.id}, status=201)
     return JsonResponse({'error': 'Invalid request method'}, status=400)

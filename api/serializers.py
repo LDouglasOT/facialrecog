@@ -1,11 +1,17 @@
 from rest_framework import serializers
-from .models import Face, Form, Parent, Child, Staff, Attendance, Pledge, ClearanceCode, Notification, Transaction
+from .models import *
 
 # Serializer for the Face model
 class FaceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Face
         fields = ['id', 'name', 'embedding']
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id','ProductName','price','quantity','itemDescription','images','Type','imgurl','venue']
+
 
 # Serializer for the Form model
 class FormSerializer(serializers.ModelSerializer):
@@ -71,3 +77,15 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = ['id', 'parent', 'amount', 'paycode', 'student_name', 'parent_name', 'parent_phone', 'transaction_reference', 'mno_transaction_reference_id', 'issued_receipt_number', 'created_at', 'updated_at', 'is_paid', 'paid_at', 'expires_at', 'days']
+
+
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.ProductName", read_only=True)
+    product_price = serializers.IntegerField(source="product.price", read_only=True)
+    parent_name = serializers.CharField(source="parent.name", read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ["id", "product", "product_name", "product_price", "quantity", "parent", "parent_name", "paid", "fulfilled", "created_at"]

@@ -2,6 +2,7 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.http import JsonResponse
 from rest_framework import status
 
 from .models import Attendance, Parent, Child, Form
@@ -77,3 +78,24 @@ def delete_attendance(request, id):
     attendance = get_object_or_404(Attendance, id=id)
     attendance.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Attendance
+from .serializers import AttendanceSerializer
+
+@api_view(["GET", "POST"])
+def get_all_attendances(request):
+    if request.method == 'GET':
+        attendances = Attendance.objects.all()
+        serializer = AttendanceSerializer(attendances, many=True)
+        print(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == "POST":
+        serializer = AttendanceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -22,7 +22,10 @@ def generate_random_code():
 def create_clearance_code(request):
     if request.method == 'POST':
         try:
+            print("............................................")
             data = json.loads(request.body)
+            print(data)
+            print("............................................")
             contact = data.get('contact',"")
             relationship = data.get('relationship',"")
             token = data.get('token',"")
@@ -42,11 +45,12 @@ def create_clearance_code(request):
             
             clearance_code = ClearanceCode.objects.create(
                 code=random_code,
-                visitor=request.user.username,
+                visitor=name,
                 contact=parent.phone,
                 visitor_contact=contact,
                 relationship=relationship,
-                parent=parent
+                parent=parent,
+                reason=reason
             )
             print(clearance_code)
             clearance_code_dict = model_to_dict(clearance_code)
@@ -72,9 +76,35 @@ def get_clearance_code(request):
             return JsonResponse({"error": str(error)}, status=500)
 
 
+def user_clearences(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            token = data.get('token')
+            decoded = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+            phone_number = decoded.get('phone')
+            parent = Parent.objects.filter(phone=phone_number).first()
+            if not parent:
+                return JsonResponse({"error": "Parent not found"}, status=404)
+
+            clearance_codes = ClearanceCode.objects.filter(parent=parent)
+            return JsonResponse(list(clearance_codes.values()), safe=False, status=200)
+        except Exception as error:
+            return JsonResponse({"error": str(error)}, status=500)
+
 
 @csrf_exempt
 def get_all_clearance_codes(request):
+    if request.method == 'GET':
+        try:
+            created = datetime.now().date()
+            print(created)
+            clearance_codes = ClearanceCode.objects.all()[:80]
+            print(clearance_codes)
+            return JsonResponse(list(clearance_codes.values()), safe=False, status=200)
+        except Exception as error:
+            return JsonResponse({"error": str(error)}, status=500)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -84,7 +114,7 @@ def get_all_clearance_codes(request):
             phone_number = decoded.get('phone')
             
             clearance_codes = ClearanceCode.objects.filter(contact=phone_number)
-            
+            print(clearance_codes)
             return JsonResponse(list(clearance_codes.values()), safe=False, status=200)
         except Exception as error:
             return JsonResponse({"error": str(error)}, status=500)
@@ -164,6 +194,9 @@ def check_clearance(request):
             }, status=200)
         except Exception as error:
             return JsonResponse({"error": str(error)}, status=500)
+    if request.method == "GET":
+        codes = ClearanceCode.objects.filter(created_at__gte=datetime.now().date())
+        return JsonResponse(list(codes.values()), safe=False, status=200)
 
 
 @csrf_exempt

@@ -19,8 +19,9 @@ def create_parent(request):
                 phone=phone,
                 phone2=phone2,
             )
-            parent=model_to_dict(parent)
-            return JsonResponse(parent, status=200)
+            parent=Parent.objects.get(id=parent.id)
+            print(parent)
+            return JsonResponse({"id":parent.id}, status=200)
 
         except Exception as error:
             return JsonResponse({"error": str(error)}, status=500)
@@ -63,7 +64,7 @@ def check_visitations(request):
         try:
             data = json.loads(request.body)
             token = data.get('token')
-
+            
             if not token:
                 return JsonResponse({"error": "Token is required"}, status=400)
 
@@ -72,9 +73,27 @@ def check_visitations(request):
             phone_number = decoded.get('phone')
 
             # Fetch attendances related to the student
-            attendances = Attendance.objects.filter(studentcontact=phone_number)
-
-            attendances_data = list(attendances.values('id', 'time_in','checkintype','parent', 'time_out','reason', 'studentcontact', 'id'))
+            # attendances = Attendance.objects.filter(studentcontact=phone_number)
+            attendances = Attendance.objects.all()
+            
+            attendances_data = [
+                {
+                    "id": attendance.id,
+                    "time_in": attendance.time_in,
+                    "time_out": attendance.time_out,
+                    "checkintype": attendance.checkintype,
+                    "reason": attendance.reason,
+                    "studentcontact": attendance.studentcontact,
+                    "parent": {
+                        "id": attendance.parent.id,
+                        "name": attendance.parent.name,  # Assuming the Parent model has a 'name' field
+                        "phone": attendance.parent.phone,  # Assuming the Parent model has a 'phone_number' field
+                        "imgurl": attendance.parent.imgurl, 
+                          # Assuming the Parent model has an 'imgurl' field
+                    }
+                }
+                for attendance in attendances
+            ]
 
             return JsonResponse({'attendances': attendances_data}, status=200)
 
@@ -83,4 +102,6 @@ def check_visitations(request):
         except jwt.InvalidTokenError:
             return JsonResponse({"error": "Invalid token"}, status=401)
         except Exception as error:
+            print(error)
             return JsonResponse({"error": str(error)}, status=500)
+
