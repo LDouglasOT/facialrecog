@@ -151,6 +151,7 @@ def recognize_face(request):
     print(request.FILES)
 
     if not image_file:
+        print("image is required")
         return Response({"error": "Image is required for recognition"}, status=400)
 
     # Convert image to numpy array
