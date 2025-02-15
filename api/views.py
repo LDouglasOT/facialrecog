@@ -149,7 +149,7 @@ def recognize_face(request):
     """ Recognize a face from an image """
     image_file = request.FILES.get('image')
     print(request.FILES)
-
+    print(request.FILES)
     if not image_file:
         print("image is required")
         return Response({"error": "Image is required for recognition"}, status=400)
