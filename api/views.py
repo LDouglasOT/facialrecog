@@ -156,11 +156,13 @@ def recognize_face(request):
     # Convert image to numpy array
     img = img_to_numpy(image_file)
     if img is None:
+        print("invalid image format")
         return Response({"error": "Invalid image format"}, status=400)
 
     # Detect face and extract embedding
     faces = app.get(img)  # Assuming app.get() detects faces and gives embeddings
     if len(faces) == 0:
+        print("No face detected")
         return Response({"error": "No face detected"}, status=400)
 
     new_embedding = faces[0].embedding  # The embedding of the detected face
@@ -183,6 +185,7 @@ def recognize_face(request):
             return Response({"message": "Face recognized", "parent": parent.name, "phone": parent.phone})
 
     # If no match is found
+    print("no matching faces found")
     return Response({"error": "No matching face found"}, status=400)
 
 
