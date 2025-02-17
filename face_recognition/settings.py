@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-u(hwe3thoq0jlph*va*qi8x)7dqlhf(a!)ya)i)b1-@=%=ttek'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 AUTHENTICATION_BACKENDS = ['api.views.PhoneNumberAuthBackend']
@@ -35,7 +35,7 @@ AUTHENTICATION_BACKENDS = ['api.views.PhoneNumberAuthBackend']
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
+    # 'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -91,16 +91,16 @@ WSGI_APPLICATION = 'face_recognition.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'twinbrook',
-        'USER': 'twinbrook',
-        'PASSWORD': 'twinbrook',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'twinbrook',
+#         'USER': 'twinbrook',
+#         'PASSWORD': 'twinbrook',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
