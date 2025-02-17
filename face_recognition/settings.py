@@ -35,7 +35,7 @@ AUTHENTICATION_BACKENDS = ['api.views.PhoneNumberAuthBackend']
 # Application definition
 
 INSTALLED_APPS = [
-    # 'daphne',
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -85,22 +85,22 @@ WSGI_APPLICATION = 'face_recognition.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'twinbrook',
-#         'USER': 'twinbrook',
-#         'PASSWORD': 'twinbrook',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'twinbrook',
+        'USER': 'twinbrook',
+        'PASSWORD': 'twinbrook',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
