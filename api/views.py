@@ -66,6 +66,7 @@ THRESHOLD = 0.5
 @api_view(["POST"])
 @parser_classes([MultiPartParser])
 def train_face(request):
+    print("training models")
     """ Train and save face embeddings from multiple images """
     name = request.data.get("name")
     image_files = request.FILES.getlist('image')  # Allow multiple images
